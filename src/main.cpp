@@ -232,7 +232,7 @@ void sendDHTDataTask(void *pvParameters)
   // }
   // Pembacaan manual
   /*
-  if (remoteControl == 0)
+  if (remoteControl == 1 && readDHTbutton == 1)
   {
     // Baca data dari sensor DHT
     float temperature = dht.readTemperature();
