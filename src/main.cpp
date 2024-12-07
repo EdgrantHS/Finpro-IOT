@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
+#include <DHT.h>
 // #include <BlynkSimpleEsp32.h>
 
 #include <freertos/FreeRTOS.h>
@@ -28,6 +29,11 @@
 #define PWM1_CHANNEL 0
 #define PWM2_CHANNEL 1
 #define PWM_RESOLUTION 8
+
+// DHT Properties
+#define DHT_PIN 4
+#define DHT_TYPE DHT11
+DHT dht(DHT_PIN, DHT_TYPE);
 
 /* Fill-in information from Blynk Device Info here */
 // #define BLYNK_TEMPLATE_ID ""
@@ -76,6 +82,7 @@ void setup()
 {
   // Debug console
   Serial.begin(115200);
+  dht.begin();
 
   // Motor
   pinMode(MOTOR1_PIN1, OUTPUT);
@@ -86,6 +93,10 @@ void setup()
   pinMode(MOTOR2_EN, OUTPUT);
   pinMode(IR_SENSOR1, INPUT_PULLUP);
   pinMode(IR_SENSOR2, INPUT_PULLUP);
+  pinMode(DHT_PIN, INPUT);
+
+  // DHT
+  dhtQueue = xQueueCreate(5, sizeof(DHTData));
 
   // PWM
   ledcSetup(PWM1_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
@@ -110,6 +121,15 @@ void setup()
       24,            /* Very High priority of the task */
       NULL,          /* Task handle to keep track of created task */
       0);            /* core 0, nanti coba multicore pake xTaskCreate */
+
+  xTaskCreatePinnedToCore(
+      sendDHTDataTask, /* Task function. */
+      "Send DHT Data", /* name of task. */
+      10000,           /* Stack size of task */
+      NULL,            /* parameter of the task */
+      24,              /* Very High priority of the task */
+      NULL,            /* Task handle to keep track of created task */
+      0);              /* core 0, nanti coba multicore pake xTaskCreate */
 }
 
 void loop()
@@ -178,4 +198,63 @@ void moveMotorTask(void *pvParameters)
     // delay untuk menghindari motor bergerak terlalu cepat
     vTaskDelay(200 / portTICK_PERIOD_MS);
   }
+}
+
+void sendDHTDataTask(void *pvParameters)
+{
+  // Pembacaan otomatis
+  // if (remoteControl == 0)
+  // {
+    while (1)
+    {
+      // Baca data dari sensor DHT
+      float temperature = dht.readTemperature();
+      float humidity = dht.readHumidity();
+
+      // Cek pembacaan
+      if (isnan(temperature) || isnan(humidity)) {
+        Serial.println("Failed to read from DHT sensor!");
+      } else {
+        Serial.print("Temperature: ");
+        Serial.print(temperature);
+        Serial.print(" *C, Humidity: ");
+        Serial.print(humidity);
+        Serial.println(" %");
+
+        // Kirim data DHT ke Blynk
+        // Blynk.virtualWrite(V3, temperature);
+        // Blynk.virtualWrite(V4, humidity);
+      }
+
+      // delay 1 detik
+      vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+  // }
+  // Pembacaan manual
+  /*
+  if (remoteControl == 0)
+  {
+    // Baca data dari sensor DHT
+    float temperature = dht.readTemperature();
+    float humidity = dht.readHumidity();
+
+    // Cek pembacaan
+    if (isnan(temperature) || isnan(humidity))
+    {
+      Serial.println("Failed to read from DHT sensor!");
+    }
+    else
+    {
+      Serial.print("Temperature: ");
+      Serial.print(temperature);
+      Serial.print(" *C, Humidity: ");
+      Serial.print(humidity);
+      Serial.println(" %");
+
+      // Kirim data DHT ke Blynk
+      // Blynk.virtualWrite(V3, temperature);
+      // Blynk.virtualWrite(V4, humidity);
+    }
+  }
+  */
 }
