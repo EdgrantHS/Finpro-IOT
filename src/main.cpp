@@ -2,7 +2,8 @@
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <DHT.h>
-#include <BlynkSimpleEsp32.h>
+#include <Ultrasonic.h>
+// #include <BlynkSimpleEsp32.h>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -34,16 +35,24 @@
 #define DHT_PIN 4
 #define DHT_TYPE DHT11
 DHT dht(DHT_PIN, DHT_TYPE);
+typedef struct
+{
+  float temperature;
+  float humidity;
+} DHTData;
 
-/* Fill-in information from Blynk Device Info here */
-#define BLYNK_TEMPLATE_ID ""
-#define BLYNK_TEMPLATE_NAME ""
-#define BLYNK_AUTH_TOKEN ""
+// Ultrasonic Sensor
+Ultrasonic ultrasonic(TRIG_PIN);
 
-/* Comment this out to disable prints and save space */
-#define BLYNK_PRINT Serial
+// /* Fill-in information from Blynk Device Info here */
+// #define BLYNK_TEMPLATE_ID ""
+// #define BLYNK_TEMPLATE_NAME ""
+// #define BLYNK_AUTH_TOKEN ""
 
-void resetAllValues();
+// /* Comment this out to disable prints and save space */
+// #define BLYNK_PRINT Serial
+
+// void resetAllValues();
 void remoteControlTask(void *pvParameters);    // Kirim queue kykny
 void automaticControlTask(void *pvParameters); // kirim queue kykny
 void moveMotorTask(void *pvParameters);        // pake queue sama mutex
@@ -56,45 +65,47 @@ char ssid[] = "";
 char pass[] = "";
 
 // Global variables
-int remoteControl = 0;
-int manualControl = 0;
-int distance = 0;
-int irSensor1 = 0;
-int irSensor2 = 0;
+static int remoteControl = 0;
+static int manualControl = 0;
+static int distance = 0;
+static int irSensor1 = 0;
+static int irSensor2 = 0;
+static int readDHTbutton = 0;
 
 // Queue
-QueueHandle_t xQueue;
+static QueueHandle_t xQueue;
+static QueueHandle_t dhtQueue;
 
-// Manual Control VP
-BLYNK_WRITE(V0)
-{
-  manualControl = param.asInt();
-  xQueueSend(xQueue, &manualControl, portMAX_DELAY);
-}
+// // Manual Control VP
+// BLYNK_WRITE(V0)
+// {
+//   manualControl = param.asInt();
+//   xQueueSend(xQueue, &manualControl, portMAX_DELAY);
+// }
 
-// Temperature VP
-BLYNK_WRITE(V1)
-{
-}
+// // Temperature VP
+// BLYNK_WRITE(V1)
+// {
+// }
 
-// Humidity VP
-BLYNK_WRITE(V2)
-{
-}
+// // Humidity VP
+// BLYNK_WRITE(V2)
+// {
+// }
 
-// Direction VP
-BLYNK_WRITE(V3)
-{
-  remoteControl = param.asInt();
-  xQueueSend(xQueue, &remoteControl, portMAX_DELAY);
-}
+// // Direction VP
+// BLYNK_WRITE(V3)
+// {
+//   remoteControl = param.asInt();
+//   xQueueSend(xQueue, &remoteControl, portMAX_DELAY);
+// }
 
-// // Manual DHT VP
-BLYNK_WRITE(V3)
-{
-  readDHTbutton = param.asInt();
-  xQueueSend(xQueue, &readDHTbutton, portMAX_DELAY);
-}  
+// // // Manual DHT VP
+// BLYNK_WRITE(V3)
+// {
+//   readDHTbutton = param.asInt();
+//   xQueueSend(xQueue, &readDHTbutton, portMAX_DELAY);
+// }
 
 void setup()
 {
@@ -123,8 +134,8 @@ void setup()
   ledcAttachPin(MOTOR2_EN, PWM2_CHANNEL);
 
   // Blynk
-  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
-  resetAllValues();
+  // Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+  // resetAllValues();
 
   // FreeRTOS
   // Setup Queue dengan ukuran 8 sebagai buffer
@@ -152,7 +163,7 @@ void setup()
 
 void loop()
 {
-  Blynk.run();
+  // Blynk.run();
 }
 
 void moveMotorTask(void *pvParameters)
@@ -240,8 +251,8 @@ void sendDHTDataTask(void *pvParameters)
       else
       {
         // Kirim data DHT ke Blynk
-        Blynk.virtualWrite(V1, temperature);
-        Blynk.virtualWrite(V2, humidity);
+        // Blynk.virtualWrite(V1, temperature);
+        // Blynk.virtualWrite(V2, humidity);
       }
 
       // delay 1 detik
@@ -263,9 +274,84 @@ void sendDHTDataTask(void *pvParameters)
       else
       {
         // Kirim data DHT ke Blynk
-        Blynk.virtualWrite(V1, temperature);
-        Blynk.virtualWrite(V2, humidity);
+        // Blynk.virtualWrite(V1, temperature);
+        // Blynk.virtualWrite(V2, humidity);
       }
     }
+  }
+}
+
+void remoteControlTask(void *pvParameters)
+{
+  while (1)
+  {
+    // kalau manual control tidak aktif, maka motor akan bergerak sesuai dengan inputan dari Blynk
+    if (manualControl == 0)
+    {
+      xQueueSend(xQueue, &remoteControl, 0); // kalau gagal kirim ke queue, langsung hangus instruksinya
+    }
+
+    // delay 10 ms
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+  }
+}
+
+void readSensorTask(void *pvParameters)
+{
+  while (1)
+  {
+    // Baca sensor ultrasonik
+    distance = ultrasonic.read(); // baca jarak dalam cm
+
+    // Baca sensor IR
+    irSensor1 = digitalRead(IR_SENSOR1);
+    irSensor2 = digitalRead(IR_SENSOR2);
+
+    // delay 100 ms
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+  }
+}
+
+void automaticControlTask(void *pvParameters)
+{
+  while (1)
+  {
+    // kalau manual control tidak aktif, maka robot akan bergerak otomatis
+    if (manualControl == 0)
+    {
+      // Jika sensor ultrasonik mendeteksi objek di depan
+      if (distance < 10)
+      {
+        // Berhenti
+        remoteControl = 5;
+        xQueueSend(xQueue, &remoteControl, 0);
+      }
+      else
+      {
+        // Jika sensor IR1 mendeteksi objek
+        if (irSensor1 == 0)
+        {
+          // Mundur
+          remoteControl = 2;
+          xQueueSend(xQueue, &remoteControl, 0);
+        }
+        // Jika sensor IR2 mendeteksi objek
+        else if (irSensor2 == 0)
+        {
+          // Mundur
+          remoteControl = 2;
+          xQueueSend(xQueue, &remoteControl, 0);
+        }
+        else
+        {
+          // Maju
+          remoteControl = 1;
+          xQueueSend(xQueue, &remoteControl, 0);
+        }
+      }
+    }
+
+    // delay 10 ms
+    vTaskDelay(10 / portTICK_PERIOD_MS);
   }
 }
