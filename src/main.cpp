@@ -2,7 +2,7 @@
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <DHT.h>
-// #include <BlynkSimpleEsp32.h>
+#include <BlynkSimpleEsp32.h>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -36,9 +36,9 @@
 DHT dht(DHT_PIN, DHT_TYPE);
 
 /* Fill-in information from Blynk Device Info here */
-// #define BLYNK_TEMPLATE_ID ""
-// #define BLYNK_TEMPLATE_NAME ""
-// #define BLYNK_AUTH_TOKEN ""
+#define BLYNK_TEMPLATE_ID ""
+#define BLYNK_TEMPLATE_NAME ""
+#define BLYNK_AUTH_TOKEN ""
 
 /* Comment this out to disable prints and save space */
 #define BLYNK_PRINT Serial
@@ -57,6 +57,7 @@ char pass[] = "";
 
 // Global variables
 int remoteControl = 0;
+int manualControl = 0;
 int distance = 0;
 int irSensor1 = 0;
 int irSensor2 = 0;
@@ -64,19 +65,36 @@ int irSensor2 = 0;
 // Queue
 QueueHandle_t xQueue;
 
-// // Remote Control 1, di sini set global variabel aja
-// BLYNK_WRITE(V1)
-// {
-//   int pinValue = param.asInt(); // assigning incoming value from pin V1 to a variable
+// Manual Control VP
+BLYNK_WRITE(V0)
+{
+  manualControl = param.asInt();
+  xQueueSend(xQueue, &manualControl, portMAX_DELAY);
+}
 
-// }
+// Temperature VP
+BLYNK_WRITE(V1)
+{
+}
 
-// // Remote Control 2, di sini set global variabel aja
-// BLYNK_WRITE(V2)
-// {
-//   int time = param.asInt(); // assigning incoming value from pin V2 to a variable
+// Humidity VP
+BLYNK_WRITE(V2)
+{
+}
 
-// }
+// Direction VP
+BLYNK_WRITE(V3)
+{
+  remoteControl = param.asInt();
+  xQueueSend(xQueue, &remoteControl, portMAX_DELAY);
+}
+
+// // Manual DHT VP
+BLYNK_WRITE(V3)
+{
+  readDHTbutton = param.asInt();
+  xQueueSend(xQueue, &readDHTbutton, portMAX_DELAY);
+}  
 
 void setup()
 {
@@ -105,8 +123,8 @@ void setup()
   ledcAttachPin(MOTOR2_EN, PWM2_CHANNEL);
 
   // Blynk
-  // Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
-  // resetAllValues();
+  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+  resetAllValues();
 
   // FreeRTOS
   // Setup Queue dengan ukuran 8 sebagai buffer
@@ -134,7 +152,7 @@ void setup()
 
 void loop()
 {
-  // Blynk.run();
+  Blynk.run();
 }
 
 void moveMotorTask(void *pvParameters)
@@ -143,8 +161,9 @@ void moveMotorTask(void *pvParameters)
   {
     // saat mendapat queue, motor akan bergerak sesuai dengan queue yang diterima
     xQueueReceive(xQueue, &remoteControl, portMAX_DELAY);
+    xQueueReceive(xQueue, &manualControl, portMAX_DELAY);
 
-    if (remoteControl == 1)
+    if (remoteControl == 1 && manualControl == 1)
     {
       // Maju
       digitalWrite(MOTOR1_PIN1, HIGH);
@@ -154,7 +173,7 @@ void moveMotorTask(void *pvParameters)
       ledcWrite(PWM1_CHANNEL, 255);
       ledcWrite(PWM2_CHANNEL, 255);
     }
-    else if (remoteControl == 2)
+    else if (remoteControl == 2 && manualControl == 1)
     {
       // Mundur
       digitalWrite(MOTOR1_PIN1, LOW);
@@ -164,7 +183,7 @@ void moveMotorTask(void *pvParameters)
       ledcWrite(PWM1_CHANNEL, 255);
       ledcWrite(PWM2_CHANNEL, 255);
     }
-    else if (remoteControl == 3)
+    else if (remoteControl == 3 && manualControl == 1)
     {
       // Kanan
       digitalWrite(MOTOR1_PIN1, HIGH);
@@ -174,7 +193,7 @@ void moveMotorTask(void *pvParameters)
       ledcWrite(PWM1_CHANNEL, 255);
       ledcWrite(PWM2_CHANNEL, 255);
     }
-    else if (remoteControl == 4)
+    else if (remoteControl == 4 && manualControl == 1)
     {
       // Kiri
       digitalWrite(MOTOR1_PIN1, LOW);
@@ -184,7 +203,7 @@ void moveMotorTask(void *pvParameters)
       ledcWrite(PWM1_CHANNEL, 255);
       ledcWrite(PWM2_CHANNEL, 255);
     }
-    else if (remoteControl == 5)
+    else if (remoteControl == 5 && manualControl == 1)
     {
       // Berhenti
       digitalWrite(MOTOR1_PIN1, LOW);
@@ -202,59 +221,51 @@ void moveMotorTask(void *pvParameters)
 
 void sendDHTDataTask(void *pvParameters)
 {
-  // Pembacaan otomatis
-  // if (remoteControl == 0)
-  // {
-    while (1)
+  while (1)
+  {
+    xQueueReceive(xQueue, &manualControl, portMAX_DELAY);
+    xQueueReceive(xQueue, &readDHTbutton, portMAX_DELAY);
+
+    // Baca DHT otomatis jika manual control tidak aktif
+    if (manualControl == 0)
+    {
+      float temperature = dht.readTemperature();
+      float humidity = dht.readHumidity();
+
+      // Cek pembacaan
+      if (isnan(temperature) || isnan(humidity))
+      {
+        Serial.println("Failed to read from DHT sensor!");
+      }
+      else
+      {
+        // Kirim data DHT ke Blynk
+        Blynk.virtualWrite(V1, temperature);
+        Blynk.virtualWrite(V2, humidity);
+      }
+
+      // delay 1 detik
+      vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+
+    // Baca DHT jika manual control aktif
+    else if (manualControl == 1 && readDHTbutton == 1)
     {
       // Baca data dari sensor DHT
       float temperature = dht.readTemperature();
       float humidity = dht.readHumidity();
 
       // Cek pembacaan
-      if (isnan(temperature) || isnan(humidity)) {
+      if (isnan(temperature) || isnan(humidity))
+      {
         Serial.println("Failed to read from DHT sensor!");
-      } else {
-        Serial.print("Temperature: ");
-        Serial.print(temperature);
-        Serial.print(" *C, Humidity: ");
-        Serial.print(humidity);
-        Serial.println(" %");
-
-        // Kirim data DHT ke Blynk
-        // Blynk.virtualWrite(V3, temperature);
-        // Blynk.virtualWrite(V4, humidity);
       }
-
-      // delay 1 detik
-      vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
-  // }
-  // Pembacaan manual
-  /*
-  if (remoteControl == 1 && readDHTbutton == 1)
-  {
-    // Baca data dari sensor DHT
-    float temperature = dht.readTemperature();
-    float humidity = dht.readHumidity();
-
-    // Cek pembacaan
-    if (isnan(temperature) || isnan(humidity))
-    {
-      Serial.println("Failed to read from DHT sensor!");
-    }
-    else
-    {
-      Serial.print("Temperature: ");
-      Serial.print(temperature);
-      Serial.print(" *C, Humidity: ");
-      Serial.print(humidity);
-      Serial.println(" %");
-
-      // Kirim data DHT ke Blynk
-      // Blynk.virtualWrite(V3, temperature);
-      // Blynk.virtualWrite(V4, humidity);
+      else
+      {
+        // Kirim data DHT ke Blynk
+        Blynk.virtualWrite(V1, temperature);
+        Blynk.virtualWrite(V2, humidity);
+      }
     }
   }
-  */
 }
