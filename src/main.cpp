@@ -3,7 +3,7 @@
 #include <WiFiClient.h>
 #include <DHT.h>
 #include <Ultrasonic.h>
-// #include <BlynkSimpleEsp32.h>
+#include <BlynkSimpleEsp32.h>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -44,23 +44,22 @@ typedef struct
 // Ultrasonic Sensor
 Ultrasonic ultrasonic(TRIG_PIN);
 
-// /* Fill-in information from Blynk Device Info here */
-// #define BLYNK_TEMPLATE_ID ""
-// #define BLYNK_TEMPLATE_NAME ""
-// #define BLYNK_AUTH_TOKEN ""
+/* Fill-in information from Blynk Device Info here */
+#define BLYNK_TEMPLATE_ID ""
+#define BLYNK_TEMPLATE_NAME ""
+#define BLYNK_AUTH_TOKEN ""
 
-// /* Comment this out to disable prints and save space */
-// #define BLYNK_PRINT Serial
+/* Comment this out to disable prints and save space */
+#define BLYNK_PRINT Serial
 
-// void resetAllValues();
-void remoteControlTask(void *pvParameters);    // Kirim queue kykny
-void automaticControlTask(void *pvParameters); // kirim queue kykny
-void moveMotorTask(void *pvParameters);        // pake queue sama mutex
+// Forward declarations
+void remoteControlTask(void *pvParameters);
+void automaticControlTask(void *pvParameters);
+void moveMotorTask(void *pvParameters);
 void sendDHTDataTask(void *pvParameters);
-void readSensorTask(void *pvParameters); // IR dan ultrasonik
+void readSensorTask(void *pvParameters);
 
 // Your WiFi credentials.
-// Set password to "" for open networks.
 char ssid[] = "";
 char pass[] = "";
 
@@ -76,36 +75,36 @@ static int readDHTbutton = 0;
 static QueueHandle_t xQueue;
 static QueueHandle_t dhtQueue;
 
-// // Manual Control VP
-// BLYNK_WRITE(V0)
-// {
-//   manualControl = param.asInt();
-//   xQueueSend(xQueue, &manualControl, portMAX_DELAY);
-// }
+// Manual Control VP
+BLYNK_WRITE(V0)
+{
+  manualControl = param.asInt();
+  xQueueSend(xQueue, &manualControl, portMAX_DELAY);
+}
 
-// // Temperature VP
-// BLYNK_WRITE(V1)
-// {
-// }
+// Temperature VP
+BLYNK_WRITE(V1)
+{
+}
 
-// // Humidity VP
-// BLYNK_WRITE(V2)
-// {
-// }
+// Humidity VP
+BLYNK_WRITE(V2)
+{
+}
 
-// // Direction VP
-// BLYNK_WRITE(V3)
-// {
-//   remoteControl = param.asInt();
-//   xQueueSend(xQueue, &remoteControl, portMAX_DELAY);
-// }
+// Direction VP
+BLYNK_WRITE(V3)
+{
+  remoteControl = param.asInt();
+  xQueueSend(xQueue, &remoteControl, portMAX_DELAY);
+}
 
-// // // Manual DHT VP
-// BLYNK_WRITE(V3)
-// {
-//   readDHTbutton = param.asInt();
-//   xQueueSend(xQueue, &readDHTbutton, portMAX_DELAY);
-// }
+// Manual DHT VP
+BLYNK_WRITE(V4)
+{
+  readDHTbutton = param.asInt();
+  xQueueSend(xQueue, &readDHTbutton, portMAX_DELAY);
+}
 
 void setup()
 {
@@ -134,11 +133,9 @@ void setup()
   ledcAttachPin(MOTOR2_EN, PWM2_CHANNEL);
 
   // Blynk
-  // Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
-  // resetAllValues();
+  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
 
-  // FreeRTOS
-  // Setup Queue dengan ukuran 8 sebagai buffer
+  // Queue
   xQueue = xQueueCreate(8, sizeof(int));
 
   // Task
@@ -148,8 +145,8 @@ void setup()
       10000,         /* Stack size of task */
       NULL,          /* parameter of the task */
       24,            /* Very High priority of the task */
-      NULL,          /* Task handle to keep track of created task */
-      0);            /* core 0, nanti coba multicore pake xTaskCreate */
+      NULL,          /* Task handle */
+      0);            /* core 0 */
 
   xTaskCreatePinnedToCore(
       sendDHTDataTask, /* Task function. */
@@ -157,13 +154,13 @@ void setup()
       10000,           /* Stack size of task */
       NULL,            /* parameter of the task */
       24,              /* Very High priority of the task */
-      NULL,            /* Task handle to keep track of created task */
-      0);              /* core 0, nanti coba multicore pake xTaskCreate */
+      NULL,            /* Task handle */
+      0);              /* core 0 */
 }
 
 void loop()
 {
-  // Blynk.run();
+  Blynk.run();
 }
 
 void moveMotorTask(void *pvParameters)
@@ -251,8 +248,8 @@ void sendDHTDataTask(void *pvParameters)
       else
       {
         // Kirim data DHT ke Blynk
-        // Blynk.virtualWrite(V1, temperature);
-        // Blynk.virtualWrite(V2, humidity);
+        Blynk.virtualWrite(V1, temperature);
+        Blynk.virtualWrite(V2, humidity);
       }
 
       // delay 1 detik
@@ -274,8 +271,8 @@ void sendDHTDataTask(void *pvParameters)
       else
       {
         // Kirim data DHT ke Blynk
-        // Blynk.virtualWrite(V1, temperature);
-        // Blynk.virtualWrite(V2, humidity);
+        Blynk.virtualWrite(V1, temperature);
+        Blynk.virtualWrite(V2, humidity);
       }
     }
   }
