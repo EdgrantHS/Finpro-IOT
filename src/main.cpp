@@ -1,7 +1,7 @@
 /* Fill-in information from Blynk Device Info here */
 #define BLYNK_TEMPLATE_ID "TMPL69TiUly6S"
 #define BLYNK_TEMPLATE_NAME "Final Project IOT Group 5"
-#define BLYNK_AUTH_TOKEN "jVextDFvO-MWXlLCoVDrZ38SlrGaCeI"
+#define BLYNK_AUTH_TOKEN "jVextDFvO-MWXlLCoVDrZ38SlrGaCeI1"
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -28,6 +28,7 @@
 #define IR_SENSOR2 35
 
 // Ultrasonic Sensor pins
+#define ECHO_PIN 22
 #define TRIG_PIN 23
 
 // PWM Properties
@@ -47,7 +48,7 @@ typedef struct
 } DHTData;
 
 // Ultrasonic Sensor
-Ultrasonic ultrasonic(TRIG_PIN);
+Ultrasonic ultrasonic(TRIG_PIN, ECHO_PIN);
 
 /* Comment this out to disable prints and save space */
 #define BLYNK_PRINT Serial
@@ -60,8 +61,8 @@ void sendDHTDataTask(void *pvParameters);
 void readSensorTask(void *pvParameters);
 
 // Your WiFi credentials.
-char ssid[] = "";
-char pass[] = "";
+char ssid[] = "Fz";
+char pass[] = "2206814324";
 
 // Global variables
 static int remoteControl = 0;
@@ -110,7 +111,9 @@ void setup()
 {
   // Debug console
   Serial.begin(115200);
+  Serial.println("Serial started");
   dht.begin();
+  Serial.println("DHT started");
 
   // Motor
   pinMode(MOTOR1_PIN1, OUTPUT);
@@ -123,8 +126,7 @@ void setup()
   pinMode(IR_SENSOR2, INPUT_PULLUP);
   pinMode(DHT_PIN, INPUT);
 
-  // DHT
-  dhtQueue = xQueueCreate(5, sizeof(DHTData));
+  Serial.println("Motor setup");
 
   // PWM
   ledcSetup(PWM1_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
@@ -132,30 +134,67 @@ void setup()
   ledcSetup(PWM2_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
   ledcAttachPin(MOTOR2_EN, PWM2_CHANNEL);
 
+  Serial.println("PWM setup");
+
   // Blynk
   Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+
+  Serial.println("Blynk started");
 
   // Queue
   xQueue = xQueueCreate(8, sizeof(int));
 
-  // Task
-  xTaskCreatePinnedToCore(
-      moveMotorTask, /* Task function. */
-      "Move Motor",  /* name of task. */
-      10000,         /* Stack size of task */
-      NULL,          /* parameter of the task */
-      24,            /* Very High priority of the task */
-      NULL,          /* Task handle */
-      0);            /* core 0 */
+  // // Task
+  // xTaskCreatePinnedToCore(
+  //     moveMotorTask, /* Task function. */
+  //     "Move Motor",  /* name of task. */
+  //     10000,         /* Stack size of task */
+  //     NULL,          /* parameter of the task */
+  //     24,            /* Very High priority of the task */
+  //     NULL,          /* Task handle */
+  //     0);            /* core 0 */
+
+  Serial.println("Task created");
 
   xTaskCreatePinnedToCore(
       sendDHTDataTask, /* Task function. */
       "Send DHT Data", /* name of task. */
-      10000,           /* Stack size of task */
+      4096,            /* Stack size of task */
       NULL,            /* parameter of the task */
       24,              /* Very High priority of the task */
       NULL,            /* Task handle */
       0);              /* core 0 */
+
+  Serial.println("Task created DHT");
+
+  // xTaskCreatePinnedToCore(
+  //     remoteControlTask, /* Task function. */
+  //     "Remote Control",  /* name of task. */
+  //     10000,             /* Stack size of task */
+  //     NULL,              /* parameter of the task */
+  //     24,                /* Very High priority of the task */
+  //     NULL,              /* Task handle */
+  //     0);                /* core 0 */
+
+  xTaskCreatePinnedToCore(
+      readSensorTask, /* Task function. */
+      "Read Sensor",  /* name of task. */
+      1024,           /* Stack size of task */
+      NULL,           /* parameter of the task */
+      24,             /* Very High priority of the task */
+      NULL,           /* Task handle */
+      0);             /* core 0 */
+
+  Serial.println("Task created Sensor");
+
+  // xTaskCreatePinnedToCore(
+  //     automaticControlTask, /* Task function. */
+  //     "Automatic Control",  /* name of task. */
+  //     10240,               /* Stack size of task */
+  //     NULL,                /* parameter of the task */
+  //     24,                  /* Very High priority of the task */
+  //     NULL,                /* Task handle */
+  //     0);                  /* core 0 */
 }
 
 void loop()
@@ -231,50 +270,25 @@ void sendDHTDataTask(void *pvParameters)
 {
   while (1)
   {
-    xQueueReceive(xQueue, &manualControl, portMAX_DELAY);
-    xQueueReceive(xQueue, &readDHTbutton, portMAX_DELAY);
+    float temperature = dht.readTemperature();
+    float humidity = dht.readHumidity();
 
-    // Baca DHT otomatis jika manual control tidak aktif
-    if (manualControl == 0)
+    // Cek pembacaan
+    if (isnan(temperature) || isnan(humidity))
     {
-      float temperature = dht.readTemperature();
-      float humidity = dht.readHumidity();
-
-      // Cek pembacaan
-      if (isnan(temperature) || isnan(humidity))
-      {
-        Serial.println("Failed to read from DHT sensor!");
-      }
-      else
-      {
-        // Kirim data DHT ke Blynk
-        Blynk.virtualWrite(V1, temperature);
-        Blynk.virtualWrite(V2, humidity);
-      }
-
-      // delay 1 detik
-      vTaskDelay(1000 / portTICK_PERIOD_MS);
+      Serial.println("Failed to read from DHT sensor!");
+    }
+    else
+    {
+      Serial.println("Temperature: " + String(temperature) + " C");
+      Serial.println("Humidity: " + String(humidity) + " %");
+      // Kirim data DHT ke Blynk
+      Blynk.virtualWrite(V1, temperature);
+      Blynk.virtualWrite(V2, humidity);
     }
 
-    // Baca DHT jika manual control aktif
-    else if (manualControl == 1 && readDHTbutton == 1)
-    {
-      // Baca data dari sensor DHT
-      float temperature = dht.readTemperature();
-      float humidity = dht.readHumidity();
-
-      // Cek pembacaan
-      if (isnan(temperature) || isnan(humidity))
-      {
-        Serial.println("Failed to read from DHT sensor!");
-      }
-      else
-      {
-        // Kirim data DHT ke Blynk
-        Blynk.virtualWrite(V1, temperature);
-        Blynk.virtualWrite(V2, humidity);
-      }
-    }
+    // delay 1 detik
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
   }
 }
 
@@ -297,6 +311,11 @@ void readSensorTask(void *pvParameters)
 {
   while (1)
   {
+    Serial.println("Reading sensor...");
+    Serial.println("Distance: " + String(distance) + " cm");
+    Serial.println("IR Sensor 1: " + String(irSensor1));
+    Serial.println("IR Sensor 2: " + String(irSensor2));
+
     // Baca sensor ultrasonik
     distance = ultrasonic.read(); // baca jarak dalam cm
 
