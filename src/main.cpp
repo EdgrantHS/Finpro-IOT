@@ -1,3 +1,8 @@
+/* Fill-in information from Blynk Device Info here */
+#define BLYNK_TEMPLATE_ID "TMPL69TiUly6S"
+#define BLYNK_TEMPLATE_NAME "Final Project IOT Group 5"
+#define BLYNK_AUTH_TOKEN "jVextDFvO-MWXlLCoVDrZ38SlrGaCeI"
+
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
@@ -43,11 +48,6 @@ typedef struct
 
 // Ultrasonic Sensor
 Ultrasonic ultrasonic(TRIG_PIN);
-
-/* Fill-in information from Blynk Device Info here */
-#define BLYNK_TEMPLATE_ID ""
-#define BLYNK_TEMPLATE_NAME ""
-#define BLYNK_AUTH_TOKEN ""
 
 /* Comment this out to disable prints and save space */
 #define BLYNK_PRINT Serial
