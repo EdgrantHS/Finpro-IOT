@@ -20,8 +20,6 @@
 #define MOTOR1_PIN2 26
 #define MOTOR2_PIN1 25
 #define MOTOR2_PIN2 33
-#define MOTOR1_EN 14
-#define MOTOR2_EN 32
 
 // IR Sensor pins
 #define IR_SENSOR1 34
@@ -74,7 +72,6 @@ static int readDHTbutton = 0;
 
 // Queue
 static QueueHandle_t xQueue;
-static QueueHandle_t dhtQueue;
 
 // Manual Control VP
 BLYNK_WRITE(V0)
@@ -120,24 +117,16 @@ void setup()
   pinMode(MOTOR1_PIN2, OUTPUT);
   pinMode(MOTOR2_PIN1, OUTPUT);
   pinMode(MOTOR2_PIN2, OUTPUT);
-  pinMode(MOTOR1_EN, OUTPUT);
-  pinMode(MOTOR2_EN, OUTPUT);
   pinMode(IR_SENSOR1, INPUT_PULLUP);
   pinMode(IR_SENSOR2, INPUT_PULLUP);
   pinMode(DHT_PIN, INPUT);
 
   Serial.println("Motor setup");
 
-  // PWM
-  ledcSetup(PWM1_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
-  ledcAttachPin(MOTOR1_EN, PWM1_CHANNEL);
-  ledcSetup(PWM2_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
-  ledcAttachPin(MOTOR2_EN, PWM2_CHANNEL);
-
   Serial.println("PWM setup");
 
   // Blynk
-  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+  // Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
 
   Serial.println("Blynk started");
 
@@ -156,14 +145,14 @@ void setup()
 
   Serial.println("Task created");
 
-  xTaskCreatePinnedToCore(
-      sendDHTDataTask, /* Task function. */
-      "Send DHT Data", /* name of task. */
-      4096,            /* Stack size of task */
-      NULL,            /* parameter of the task */
-      24,              /* Very High priority of the task */
-      NULL,            /* Task handle */
-      0);              /* core 0 */
+  // xTaskCreatePinnedToCore(
+  //     sendDHTDataTask, /* Task function. */
+  //     "Send DHT Data", /* name of task. */
+  //     4096,            /* Stack size of task */
+  //     NULL,            /* parameter of the task */
+  //     24,              /* Very High priority of the task */
+  //     NULL,            /* Task handle */
+  //     0);              /* core 0 */
 
   Serial.println("Task created DHT");
 
@@ -176,14 +165,14 @@ void setup()
   //     NULL,              /* Task handle */
   //     0);                /* core 0 */
 
-  xTaskCreatePinnedToCore(
-      readSensorTask, /* Task function. */
-      "Read Sensor",  /* name of task. */
-      1024,           /* Stack size of task */
-      NULL,           /* parameter of the task */
-      24,             /* Very High priority of the task */
-      NULL,           /* Task handle */
-      0);             /* core 0 */
+  // xTaskCreatePinnedToCore(
+  //     readSensorTask, /* Task function. */
+  //     "Read Sensor",  /* name of task. */
+  //     1024,           /* Stack size of task */
+  //     NULL,           /* parameter of the task */
+  //     24,             /* Very High priority of the task */
+  //     NULL,           /* Task handle */
+  //     0);             /* core 0 */
 
   Serial.println("Task created Sensor");
 
@@ -199,7 +188,30 @@ void setup()
 
 void loop()
 {
-  Blynk.run();
+  // Blynk.run();
+  // maju
+  digitalWrite(MOTOR1_PIN1, HIGH);
+  digitalWrite(MOTOR1_PIN2, LOW);
+  digitalWrite(MOTOR2_PIN1, HIGH);
+  digitalWrite(MOTOR2_PIN2, LOW);
+  vTaskDelay(2000 / portTICK_PERIOD_MS);
+  Serial.println("\nMaju\n");
+
+  // berhenti
+  digitalWrite(MOTOR1_PIN1, LOW);
+  digitalWrite(MOTOR1_PIN2, LOW);
+  digitalWrite(MOTOR2_PIN1, LOW);
+  digitalWrite(MOTOR2_PIN2, LOW);
+  vTaskDelay(2000 / portTICK_PERIOD_MS);
+  Serial.println("\nBerhenti\n");
+
+  // mundur
+  digitalWrite(MOTOR1_PIN1, LOW);
+  digitalWrite(MOTOR1_PIN2, HIGH);
+  digitalWrite(MOTOR2_PIN1, LOW);
+  digitalWrite(MOTOR2_PIN2, HIGH);
+  delay(2000);
+  Serial.println("\nMundur\n");
 }
 
 void moveMotorTask(void *pvParameters)
@@ -217,8 +229,6 @@ void moveMotorTask(void *pvParameters)
       digitalWrite(MOTOR1_PIN2, LOW);
       digitalWrite(MOTOR2_PIN1, HIGH);
       digitalWrite(MOTOR2_PIN2, LOW);
-      ledcWrite(PWM1_CHANNEL, 255);
-      ledcWrite(PWM2_CHANNEL, 255);
     }
     else if (remoteControl == 2 && manualControl == 1)
     {
@@ -227,8 +237,6 @@ void moveMotorTask(void *pvParameters)
       digitalWrite(MOTOR1_PIN2, HIGH);
       digitalWrite(MOTOR2_PIN1, LOW);
       digitalWrite(MOTOR2_PIN2, HIGH);
-      ledcWrite(PWM1_CHANNEL, 255);
-      ledcWrite(PWM2_CHANNEL, 255);
     }
     else if (remoteControl == 3 && manualControl == 1)
     {
@@ -237,8 +245,6 @@ void moveMotorTask(void *pvParameters)
       digitalWrite(MOTOR1_PIN2, LOW);
       digitalWrite(MOTOR2_PIN1, LOW);
       digitalWrite(MOTOR2_PIN2, HIGH);
-      ledcWrite(PWM1_CHANNEL, 255);
-      ledcWrite(PWM2_CHANNEL, 255);
     }
     else if (remoteControl == 4 && manualControl == 1)
     {
@@ -247,8 +253,6 @@ void moveMotorTask(void *pvParameters)
       digitalWrite(MOTOR1_PIN2, HIGH);
       digitalWrite(MOTOR2_PIN1, HIGH);
       digitalWrite(MOTOR2_PIN2, LOW);
-      ledcWrite(PWM1_CHANNEL, 255);
-      ledcWrite(PWM2_CHANNEL, 255);
     }
     else if (remoteControl == 5 && manualControl == 1)
     {
@@ -257,8 +261,6 @@ void moveMotorTask(void *pvParameters)
       digitalWrite(MOTOR1_PIN2, LOW);
       digitalWrite(MOTOR2_PIN1, LOW);
       digitalWrite(MOTOR2_PIN2, LOW);
-      ledcWrite(PWM1_CHANNEL, 0);
-      ledcWrite(PWM2_CHANNEL, 0);
     }
 
     // delay untuk menghindari motor bergerak terlalu cepat
