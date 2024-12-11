@@ -59,10 +59,11 @@ void sendDHTDataTask(void *pvParameters);
 void readSensorTask(void *pvParameters);
 
 // Your WiFi credentials.
-char ssid[] = "Fz";
-char pass[] = "2206814324";
+char ssid[] = ":/";
+char pass[] = "AmamyaKokoro";
 
 // Global variables
+static int wirelessControl = 0;
 static int remoteControl = 0;
 static int manualControl = 0;
 static int distance = 0;
@@ -93,8 +94,7 @@ BLYNK_WRITE(V2)
 // Direction VP
 BLYNK_WRITE(V3)
 {
-  remoteControl = param.asInt();
-  xQueueSend(xQueue, &remoteControl, portMAX_DELAY);
+  wirelessControl = param.asInt();
 }
 
 // Manual DHT VP
@@ -126,92 +126,125 @@ void setup()
   Serial.println("PWM setup");
 
   // Blynk
-  // Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
 
   Serial.println("Blynk started");
 
   // Queue
   xQueue = xQueueCreate(8, sizeof(int));
 
-  // // Task
-  // xTaskCreatePinnedToCore(
-  //     moveMotorTask, /* Task function. */
-  //     "Move Motor",  /* name of task. */
-  //     10000,         /* Stack size of task */
-  //     NULL,          /* parameter of the task */
-  //     24,            /* Very High priority of the task */
-  //     NULL,          /* Task handle */
-  //     0);            /* core 0 */
+  // Task
+  xTaskCreatePinnedToCore(
+      moveMotorTask, /* Task function. */
+      "Move Motor",  /* name of task. */
+      10000,         /* Stack size of task */
+      NULL,          /* parameter of the task */
+      24,            /* Very High priority of the task */
+      NULL,          /* Task handle */
+      0);            /* core 0 */
 
   Serial.println("Task created");
 
-  // xTaskCreatePinnedToCore(
-  //     sendDHTDataTask, /* Task function. */
-  //     "Send DHT Data", /* name of task. */
-  //     4096,            /* Stack size of task */
-  //     NULL,            /* parameter of the task */
-  //     24,              /* Very High priority of the task */
-  //     NULL,            /* Task handle */
-  //     0);              /* core 0 */
+  xTaskCreatePinnedToCore(
+      sendDHTDataTask, /* Task function. */
+      "Send DHT Data", /* name of task. */
+      4096,            /* Stack size of task */
+      NULL,            /* parameter of the task */
+      24,              /* Very High priority of the task */
+      NULL,            /* Task handle */
+      0);              /* core 0 */
 
   Serial.println("Task created DHT");
 
-  // xTaskCreatePinnedToCore(
-  //     remoteControlTask, /* Task function. */
-  //     "Remote Control",  /* name of task. */
-  //     10000,             /* Stack size of task */
-  //     NULL,              /* parameter of the task */
-  //     24,                /* Very High priority of the task */
-  //     NULL,              /* Task handle */
-  //     0);                /* core 0 */
+  xTaskCreatePinnedToCore(
+      remoteControlTask, /* Task function. */
+      "Remote Control",  /* name of task. */
+      10240,             /* Stack size of task */
+      NULL,              /* parameter of the task */
+      24,                /* Very High priority of the task */
+      NULL,              /* Task handle */
+      0);                /* core 0 */
 
-  // xTaskCreatePinnedToCore(
-  //     readSensorTask, /* Task function. */
-  //     "Read Sensor",  /* name of task. */
-  //     1024,           /* Stack size of task */
-  //     NULL,           /* parameter of the task */
-  //     24,             /* Very High priority of the task */
-  //     NULL,           /* Task handle */
-  //     0);             /* core 0 */
+  xTaskCreatePinnedToCore(
+      readSensorTask, /* Task function. */
+      "Read Sensor",  /* name of task. */
+      1024,           /* Stack size of task */
+      NULL,           /* parameter of the task */
+      24,             /* Very High priority of the task */
+      NULL,           /* Task handle */
+      0);             /* core 0 */
 
   Serial.println("Task created Sensor");
 
-  // xTaskCreatePinnedToCore(
-  //     automaticControlTask, /* Task function. */
-  //     "Automatic Control",  /* name of task. */
-  //     10240,               /* Stack size of task */
-  //     NULL,                /* parameter of the task */
-  //     24,                  /* Very High priority of the task */
-  //     NULL,                /* Task handle */
-  //     0);                  /* core 0 */
+  xTaskCreatePinnedToCore(
+      automaticControlTask, /* Task function. */
+      "Automatic Control",  /* name of task. */
+      10240,                /* Stack size of task */
+      NULL,                 /* parameter of the task */
+      24,                   /* Very High priority of the task */
+      NULL,                 /* Task handle */
+      0);                   /* core 0 */
 }
 
 void loop()
 {
-  // Blynk.run();
-  // maju
-  digitalWrite(MOTOR1_PIN1, HIGH);
-  digitalWrite(MOTOR1_PIN2, LOW);
-  digitalWrite(MOTOR2_PIN1, HIGH);
-  digitalWrite(MOTOR2_PIN2, LOW);
-  vTaskDelay(2000 / portTICK_PERIOD_MS);
-  Serial.println("\nMaju\n");
+  Blynk.run();
 
-  // berhenti
-  digitalWrite(MOTOR1_PIN1, LOW);
-  digitalWrite(MOTOR1_PIN2, LOW);
-  digitalWrite(MOTOR2_PIN1, LOW);
-  digitalWrite(MOTOR2_PIN2, LOW);
-  vTaskDelay(2000 / portTICK_PERIOD_MS);
-  Serial.println("\nBerhenti\n");
+  // // maju
+  // digitalWrite(MOTOR1_PIN1, HIGH);
+  // digitalWrite(MOTOR1_PIN2, LOW);
+  // digitalWrite(MOTOR2_PIN1, HIGH);
+  // digitalWrite(MOTOR2_PIN2, LOW);
+  // vTaskDelay(2000 / portTICK_PERIOD_MS);
+  // Serial.println("\nMaju\n");
 
-  // mundur
-  digitalWrite(MOTOR1_PIN1, LOW);
-  digitalWrite(MOTOR1_PIN2, HIGH);
-  digitalWrite(MOTOR2_PIN1, LOW);
-  digitalWrite(MOTOR2_PIN2, HIGH);
-  delay(2000);
-  Serial.println("\nMundur\n");
+  // // berhenti
+  // digitalWrite(MOTOR1_PIN1, LOW);
+  // digitalWrite(MOTOR1_PIN2, LOW);
+  // digitalWrite(MOTOR2_PIN1, LOW);
+  // digitalWrite(MOTOR2_PIN2, LOW);
+  // vTaskDelay(2000 / portTICK_PERIOD_MS);
+  // Serial.println("\nBerhenti\n");
+
+  // // mundur
+  // digitalWrite(MOTOR1_PIN1, LOW);
+  // digitalWrite(MOTOR1_PIN2, HIGH);
+  // digitalWrite(MOTOR2_PIN1, LOW);
+  // digitalWrite(MOTOR2_PIN2, HIGH);
+  // delay(2000);
+  // Serial.println("\nMundur\n");
+
+  // manualControl = 1;
+
+  // // Maju
+  // Serial.println("\nMaju\n");
+  // remoteControl = 1;
+  // vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+  // // Berhenti
+  // Serial.println("\nBerhenti\n");
+  // remoteControl = 5;
+  // vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+  // // Kanan
+  // Serial.println("\nKanan\n");
+  // remoteControl = 3;
+  // vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+  // // Kiri
+  // Serial.println("\nKiri\n");
+  // remoteControl = 4;
+  // vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+  // // Mundur
+  // Serial.println("\nMundur\n");
+  // remoteControl = 2;
+  // vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+  // // Berhenti
+  // Serial.println("\nBerhenti\n");
+  // remoteControl = 5;
+  // vTaskDelay(2000 / portTICK_PERIOD_MS);
 }
 
 void moveMotorTask(void *pvParameters)
@@ -219,10 +252,11 @@ void moveMotorTask(void *pvParameters)
   while (1)
   {
     // saat mendapat queue, motor akan bergerak sesuai dengan queue yang diterima
-    xQueueReceive(xQueue, &remoteControl, portMAX_DELAY);
-    xQueueReceive(xQueue, &manualControl, portMAX_DELAY);
+    // xQueueReceive(xQueue, &remoteControl, portMAX_DELAY);
+    // xQueueReceive(xQueue, &manualControl, portMAX_DELAY);
+    Serial.println("Remote Control: " + String(remoteControl));
 
-    if (remoteControl == 1 && manualControl == 1)
+    if (remoteControl == 1)
     {
       // Maju
       digitalWrite(MOTOR1_PIN1, HIGH);
@@ -230,7 +264,7 @@ void moveMotorTask(void *pvParameters)
       digitalWrite(MOTOR2_PIN1, HIGH);
       digitalWrite(MOTOR2_PIN2, LOW);
     }
-    else if (remoteControl == 2 && manualControl == 1)
+    else if (remoteControl == 2)
     {
       // Mundur
       digitalWrite(MOTOR1_PIN1, LOW);
@@ -238,7 +272,7 @@ void moveMotorTask(void *pvParameters)
       digitalWrite(MOTOR2_PIN1, LOW);
       digitalWrite(MOTOR2_PIN2, HIGH);
     }
-    else if (remoteControl == 3 && manualControl == 1)
+    else if (remoteControl == 3)
     {
       // Kanan
       digitalWrite(MOTOR1_PIN1, HIGH);
@@ -246,7 +280,7 @@ void moveMotorTask(void *pvParameters)
       digitalWrite(MOTOR2_PIN1, LOW);
       digitalWrite(MOTOR2_PIN2, HIGH);
     }
-    else if (remoteControl == 4 && manualControl == 1)
+    else if (remoteControl == 4)
     {
       // Kiri
       digitalWrite(MOTOR1_PIN1, LOW);
@@ -254,7 +288,7 @@ void moveMotorTask(void *pvParameters)
       digitalWrite(MOTOR2_PIN1, HIGH);
       digitalWrite(MOTOR2_PIN2, LOW);
     }
-    else if (remoteControl == 5 && manualControl == 1)
+    else if (remoteControl == 5)
     {
       // Berhenti
       digitalWrite(MOTOR1_PIN1, LOW);
@@ -298,14 +332,38 @@ void remoteControlTask(void *pvParameters)
 {
   while (1)
   {
-    // kalau manual control tidak aktif, maka motor akan bergerak sesuai dengan inputan dari Blynk
-    if (manualControl == 0)
+    // kalau manual control aktif, meneruskan nilai remote control ke moveMotorTask
+    if (manualControl == 1)
     {
-      xQueueSend(xQueue, &remoteControl, 0); // kalau gagal kirim ke queue, langsung hangus instruksinya
+      // Maju
+      if (wirelessControl == 1)
+      {
+        remoteControl = 1;
+      }
+      // Mundur
+      else if (wirelessControl == 2)
+      {
+        remoteControl = 2;
+      }
+      // Kanan
+      else if (wirelessControl == 3)
+      {
+        remoteControl = 3;
+      }
+      // Kiri
+      else if (wirelessControl == 4)
+      {
+        remoteControl = 4;
+      }
+      // Berhenti
+      else if (wirelessControl == 5)
+      {
+        remoteControl = 5;
+      }
     }
 
     // delay 10 ms
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
   }
 }
 
@@ -313,10 +371,10 @@ void readSensorTask(void *pvParameters)
 {
   while (1)
   {
-    Serial.println("Reading sensor...");
-    Serial.println("Distance: " + String(distance) + " cm");
-    Serial.println("IR Sensor 1: " + String(irSensor1));
-    Serial.println("IR Sensor 2: " + String(irSensor2));
+    // Serial.println("Reading sensor...");
+    // Serial.println("Distance: " + String(distance) + " cm");
+    // Serial.println("IR Sensor 1: " + String(irSensor1));
+    // Serial.println("IR Sensor 2: " + String(irSensor2));
 
     // Baca sensor ultrasonik
     distance = ultrasonic.read(); // baca jarak dalam cm
@@ -326,7 +384,7 @@ void readSensorTask(void *pvParameters)
     irSensor2 = digitalRead(IR_SENSOR2);
 
     // delay 100 ms
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    vTaskDelay(200 / portTICK_PERIOD_MS);
   }
 }
 
@@ -342,29 +400,31 @@ void automaticControlTask(void *pvParameters)
       {
         // Berhenti
         remoteControl = 5;
-        xQueueSend(xQueue, &remoteControl, 0);
       }
       else
       {
-        // Jika sensor IR1 mendeteksi objek
-        if (irSensor1 == 0)
+        // Jika kedua sensor IR mendeteksi objek (IR Kiri dan Kanan)
+        if (irSensor1 == 0 && irSensor2 == 0)
         {
           // Mundur
           remoteControl = 2;
-          xQueueSend(xQueue, &remoteControl, 0);
         }
-        // Jika sensor IR2 mendeteksi objek
+        // Jika sensor IR1 mendeteksi objek (IR Kiri)
+        else if (irSensor1 == 0)
+        {
+          // Kanan
+          remoteControl = 3;
+        }
+        // Jika sensor IR2 mendeteksi objek (IR Kanan)
         else if (irSensor2 == 0)
         {
-          // Mundur
-          remoteControl = 2;
-          xQueueSend(xQueue, &remoteControl, 0);
+          // Kiri
+          remoteControl = 4;
         }
         else
         {
           // Maju
           remoteControl = 1;
-          xQueueSend(xQueue, &remoteControl, 0);
         }
       }
     }
