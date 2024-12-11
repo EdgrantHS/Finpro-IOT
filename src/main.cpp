@@ -139,7 +139,7 @@ void setup()
       "Move Motor",  /* name of task. */
       10000,         /* Stack size of task */
       NULL,          /* parameter of the task */
-      24,            /* Very High priority of the task */
+      5,             /* max priority of the task */
       NULL,          /* Task handle */
       0);            /* core 0 */
 
@@ -150,7 +150,7 @@ void setup()
       "Send DHT Data", /* name of task. */
       4096,            /* Stack size of task */
       NULL,            /* parameter of the task */
-      24,              /* Very High priority of the task */
+      1,               /* Low priority of the task */
       NULL,            /* Task handle */
       0);              /* core 0 */
 
@@ -161,7 +161,7 @@ void setup()
       "Remote Control",  /* name of task. */
       10240,             /* Stack size of task */
       NULL,              /* parameter of the task */
-      24,                /* Very High priority of the task */
+      4,                 /* High priority of the task */
       NULL,              /* Task handle */
       0);                /* core 0 */
 
@@ -170,7 +170,7 @@ void setup()
       "Read Sensor",  /* name of task. */
       1024,           /* Stack size of task */
       NULL,           /* parameter of the task */
-      24,             /* Very High priority of the task */
+      3,              /* Very High priority of the task */
       NULL,           /* Task handle */
       0);             /* core 0 */
 
@@ -181,7 +181,7 @@ void setup()
       "Automatic Control",  /* name of task. */
       10240,                /* Stack size of task */
       NULL,                 /* parameter of the task */
-      24,                   /* Very High priority of the task */
+      2,                    /* Very High priority of the task */
       NULL,                 /* Task handle */
       0);                   /* core 0 */
 }
@@ -189,62 +189,6 @@ void setup()
 void loop()
 {
   Blynk.run();
-
-  // // maju
-  // digitalWrite(MOTOR1_PIN1, HIGH);
-  // digitalWrite(MOTOR1_PIN2, LOW);
-  // digitalWrite(MOTOR2_PIN1, HIGH);
-  // digitalWrite(MOTOR2_PIN2, LOW);
-  // vTaskDelay(2000 / portTICK_PERIOD_MS);
-  // Serial.println("\nMaju\n");
-
-  // // berhenti
-  // digitalWrite(MOTOR1_PIN1, LOW);
-  // digitalWrite(MOTOR1_PIN2, LOW);
-  // digitalWrite(MOTOR2_PIN1, LOW);
-  // digitalWrite(MOTOR2_PIN2, LOW);
-  // vTaskDelay(2000 / portTICK_PERIOD_MS);
-  // Serial.println("\nBerhenti\n");
-
-  // // mundur
-  // digitalWrite(MOTOR1_PIN1, LOW);
-  // digitalWrite(MOTOR1_PIN2, HIGH);
-  // digitalWrite(MOTOR2_PIN1, LOW);
-  // digitalWrite(MOTOR2_PIN2, HIGH);
-  // delay(2000);
-  // Serial.println("\nMundur\n");
-
-  // manualControl = 1;
-
-  // // Maju
-  // Serial.println("\nMaju\n");
-  // remoteControl = 1;
-  // vTaskDelay(2000 / portTICK_PERIOD_MS);
-
-  // // Berhenti
-  // Serial.println("\nBerhenti\n");
-  // remoteControl = 5;
-  // vTaskDelay(2000 / portTICK_PERIOD_MS);
-
-  // // Kanan
-  // Serial.println("\nKanan\n");
-  // remoteControl = 3;
-  // vTaskDelay(2000 / portTICK_PERIOD_MS);
-
-  // // Kiri
-  // Serial.println("\nKiri\n");
-  // remoteControl = 4;
-  // vTaskDelay(2000 / portTICK_PERIOD_MS);
-
-  // // Mundur
-  // Serial.println("\nMundur\n");
-  // remoteControl = 2;
-  // vTaskDelay(2000 / portTICK_PERIOD_MS);
-
-  // // Berhenti
-  // Serial.println("\nBerhenti\n");
-  // remoteControl = 5;
-  // vTaskDelay(2000 / portTICK_PERIOD_MS);
 }
 
 void moveMotorTask(void *pvParameters)
