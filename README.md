@@ -39,3 +39,58 @@ Kode dikembangkan menggunakan FreeRTOS untuk menjalankan beberapa tugas paralel,
 ### Rangkaian
 
 ![image](https://github.com/user-attachments/assets/516286ab-29dd-4d3a-a77c-f657ad225040)
+
+### Integration
+Semua komponen terhubung ke ESP32 untuk memastikan pengumpulan data sensor dan kontrol motor berjalan lancar. Robot ini dirancang agar mampu bekerja di medan berbahaya dengan daya baterai 12V.
+
+---
+
+## Software Implementation Details
+
+### Platform
+- **Blynk**: Untuk kontrol manual dan pemantauan data sensor.  
+- **FreeRTOS**: Mengelola multitasking, seperti membaca sensor, mengontrol motor, dan komunikasi data.
+
+### Features
+- **Kontrol Manual**: Menggunakan aplikasi Blynk untuk menggerakkan robot (maju, mundur, kiri, kanan, berhenti).
+- **Navigasi Otomatis**: Berdasarkan data sensor untuk menghindari rintangan.
+- **Pengumpulan Data**: Suhu dan kelembaban lingkungan dikirim ke Blynk secara real-time.
+
+### Code Highlights
+- **Task-based System**: Menggunakan FreeRTOS untuk menjalankan tugas seperti:
+  - Penggerakan motor
+  - Pengiriman data DHT ke Blynk
+  - Pembacaan sensor ultrasonik dan inframerah
+
+---
+
+## Test Results and Performance Evaluation
+
+### Test Setup
+- Program diuji menggunakan PlatformIO di Visual Studio Code.  
+- Robot dikontrol secara manual melalui aplikasi Blynk untuk menguji semua fitur.
+
+### Results
+- **Navigasi Otomatis**: Robot berhasil menghindari rintangan dan menyesuaikan arah.
+- **Pengumpulan Data**: Data suhu dan kelembaban terbaca dengan akurat, namun memerlukan aktivasi melalui aplikasi Blynk.
+- **Kendala**: Daya baterai 9V tidak mencukupi untuk mendukung operasi motor. Baterai 12V diperlukan untuk performa optimal.
+
+---
+
+## Conclusion and Future Work
+
+### Conclusion
+Proyek KOSEKI berhasil memenuhi kriteria yang ditentukan:
+- Navigasi otomatis dan kontrol manual bekerja dengan baik.
+- Data sensor dikirim ke Blynk secara real-time.
+- Robot berfungsi sesuai target untuk eksplorasi di area berbahaya.
+
+### Future Work
+- **Optimisasi daya**: Menggunakan sumber daya yang lebih efisien untuk meningkatkan durasi operasi.  
+- **Peningkatan fitur**: Menambahkan kamera untuk visualisasi lingkungan.  
+- **Integrasi AI**: Memungkinkan pengambilan keputusan yang lebih cerdas dalam navigasi otomatis.
+
+---
+
+> **Dibuat oleh Grup 9 - Universitas Indonesia**  
+> Adam Bintang Arafah Poernomo, Edgrant Henderson Suryajaya, Fairuz Muhammad, Reiki Putra Darmawan
